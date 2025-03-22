@@ -10,4 +10,5 @@ public interface TauxAlerteService {
     TauxAlerte createTauxAlerte(TauxAlerte tauxAlerte);
     TauxAlerte updateTauxAlerte(Integer id, TauxAlerte tauxAlerte);
     void deleteTauxAlerte(Integer id);
+    TauxAlerte getLastTauxAlerte();
 }

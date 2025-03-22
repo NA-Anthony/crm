@@ -78,6 +78,28 @@
                     <div class="card">
                         <div class="row">
                             <div class="card-body">
+                                <div th:if="${alertMessage}" class="alert alert-warning">
+                                    <span th:text="${alertMessage}"></span>
+                                </div>
+
+                                <div th:if="${confirmationMessage}" class="alert alert-danger">
+                                    <span th:text="${confirmationMessage}"></span>
+
+                                    <!-- Afficher les boutons de confirmation si nécessaire -->
+                                    <div th:if="${showConfirmationButtons}">
+                                        <form th:action="@{/employee/ticket/confirm-purchase}" method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-success">Oui, continuer</button>
+                                        </form>
+                                        <form th:action="@{/employee/ticket/cancel-purchase}" method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger">Non, annuler</button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- Afficher le message d'avertissement -->
+                                <div th:if="${warningMessage}" class="alert alert-info">
+                                    <span th:text="${warningMessage}"></span>
+                                </div>
                                 <form th:action="@{/employee/calendar/create-event}" th:object="${eventDisplay}" method="post">
 
                                     <label class="m-t-20" for="summary">Summary:</label>

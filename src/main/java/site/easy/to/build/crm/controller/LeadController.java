@@ -17,6 +17,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import site.easy.to.build.crm.entity.*;
 import site.easy.to.build.crm.entity.settings.LeadEmailSettings;
 import site.easy.to.build.crm.google.model.calendar.EventDisplay;
@@ -26,6 +27,7 @@ import site.easy.to.build.crm.google.service.acess.GoogleAccessService;
 import site.easy.to.build.crm.google.service.calendar.GoogleCalendarApiService;
 import site.easy.to.build.crm.google.service.drive.GoogleDriveApiService;
 import site.easy.to.build.crm.google.service.gmail.GoogleGmailApiService;
+import site.easy.to.build.crm.service.budget.BudgetService;
 import site.easy.to.build.crm.service.customer.CustomerService;
 import site.easy.to.build.crm.service.depense.DepenseService;
 import site.easy.to.build.crm.service.drive.GoogleDriveFileService;
@@ -33,6 +35,7 @@ import site.easy.to.build.crm.service.file.FileService;
 import site.easy.to.build.crm.service.lead.LeadActionService;
 import site.easy.to.build.crm.service.lead.LeadService;
 import site.easy.to.build.crm.service.settings.LeadEmailSettingsService;
+import site.easy.to.build.crm.service.taux.TauxAlerteService;
 import site.easy.to.build.crm.service.user.UserService;
 import site.easy.to.build.crm.util.*;
 
@@ -64,12 +67,14 @@ public class LeadController {
     private final GoogleGmailApiService googleGmailApiService;
     private final EntityManager entityManager;
     private final DepenseService depenseService;
+    private final BudgetService budgetService;
+    private final TauxAlerteService tauxAlerteService;
 
     @Autowired
     public LeadController(LeadService leadService, AuthenticationUtils authenticationUtils, UserService userService, CustomerService customerService,
                           LeadActionService leadActionService, GoogleCalendarApiService googleCalendarApiService, FileService fileService,
                           GoogleDriveApiService googleDriveApiService, GoogleDriveFileService googleDriveFileService, FileUtil fileUtil,
-                          LeadEmailSettingsService leadEmailSettingsService, GoogleGmailApiService googleGmailApiService, EntityManager entityManager, DepenseService depenseService) {
+                          LeadEmailSettingsService leadEmailSettingsService, GoogleGmailApiService googleGmailApiService, EntityManager entityManager, DepenseService depenseService, BudgetService budgetService, TauxAlerteService tauxAlerteService) {
         this.leadService = leadService;
         this.authenticationUtils = authenticationUtils;
         this.userService = userService;
@@ -84,6 +89,8 @@ public class LeadController {
         this.googleGmailApiService = googleGmailApiService;
         this.entityManager = entityManager;
         this.depenseService = depenseService;
+        this.budgetService = budgetService;
+        this.tauxAlerteService = tauxAlerteService;
     }
 
     @GetMapping("/show/{id}")
@@ -174,7 +181,7 @@ public class LeadController {
                              @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
                              @RequestParam("customerId") int customerId, @RequestParam("employeeId") int employeeId,
                              Authentication authentication, @RequestParam("allFiles")@Nullable String files,
-                             @RequestParam("folderId") @Nullable String folderId, Model model) throws JsonProcessingException {
+                             @RequestParam("folderId") @Nullable String folderId, Model model, RedirectAttributes redirectAttributes) throws JsonProcessingException {
 
         int userId = authenticationUtils.getLoggedInUserId(authentication);
         User manager = userService.findById(userId);
@@ -214,19 +221,49 @@ public class LeadController {
             }
         }
 
-        Lead createdLead = leadService.save(lead);
-
         if (montant != null && date != null) {
             Depense depense = new Depense();
             depense.setMontant(montant);
             depense.setDate(date);
-            depense.setLead(createdLead);
-            depenseService.createDepense(depense);
-        }
-        fileUtil.saveFiles(allFiles, createdLead);
 
-        if (lead.getGoogleDrive() != null) {
-            fileUtil.saveGoogleDriveFiles(authentication, allFiles, folderId, createdLead);
+            Double solde = budgetService.getSoldeByCustomerId(customerId);
+
+            Double totalDepenses = depenseService.getTotalDepensesByCustomerId(customerId);
+            if(totalDepenses != null){
+                montant += totalDepenses;
+            }
+
+            TauxAlerte tauxAlerte = tauxAlerteService.getLastTauxAlerte();
+            Double tauxAlerteValue = tauxAlerte.getTaux();
+
+            if (solde != null && montant != null) {
+                Double tauxUtilisation = (montant / solde) * 100;
+
+                if (tauxUtilisation >= tauxAlerteValue && tauxUtilisation < 100) {
+                    redirectAttributes.addFlashAttribute("alertMessage", "Attention : Vous avez atteint " + tauxUtilisation + "% de votre budget.");
+                }
+
+                else if (montant > solde) {
+                    redirectAttributes.addFlashAttribute("confirmationMessage",
+                            "Attention : Vous avez dépassé votre budget. Souhaitez-vous continuer l'achat ?");
+                    redirectAttributes.addFlashAttribute("showConfirmationButtons", true);
+                    model.addAttribute("lead", lead);
+                    model.addAttribute("depense", depense);
+                    model.addAttribute("confirmationMessage",
+                            "Attention : Vous avez dépassé votre budget. Souhaitez-vous continuer l'achat ?");
+                    return "lead/confirm-purchase";
+                }
+                Lead createdLead = leadService.save(lead);
+                depense.setLead(createdLead);
+                depenseService.createDepense(depense);
+                fileUtil.saveFiles(allFiles, createdLead);
+
+                if (lead.getGoogleDrive() != null) {
+                    fileUtil.saveGoogleDriveFiles(authentication, allFiles, folderId, createdLead);
+                }
+            } else {
+                redirectAttributes.addFlashAttribute("warningMessage", "Aucun budget ou dépenses définis pour ce client.");
+            }
         }
 
         if (lead.getStatus().equals("meeting-to-schedule")) {
@@ -235,6 +272,45 @@ public class LeadController {
         if(AuthorizationUtil.hasRole(authentication, "ROLE_MANAGER")) {
             return "redirect:/employee/lead/created-leads";
         }
+        return "redirect:/employee/lead/assigned-leads";
+    }
+
+    @PostMapping("/confirm-action")
+    public String confirmLeadAction(@RequestParam("name") String name,
+                                    @RequestParam("phone") String phone,
+                                    @RequestParam("status") String status,
+                                    @RequestParam("customerId") int customerId,
+                                    @RequestParam("employeeId") int employeeId,
+                                    @RequestParam("montant") Double montant,
+                                    @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                    RedirectAttributes redirectAttributes) {
+
+        // Récupérer le client et l'employé
+        Customer customer = customerService.findByCustomerId(customerId);
+        User employee = userService.findById(employeeId);
+
+        // Créer le lead
+        Lead lead = new Lead();
+        lead.setName(name);
+        lead.setPhone(phone);
+        lead.setStatus(status);
+        lead.setCustomer(customer);
+        lead.setEmployee(employee);
+        lead.setCreatedAt(LocalDateTime.now());
+
+        // Enregistrer le lead
+        Lead savedLead = leadService.save(lead);
+
+        Depense depense = new Depense();
+        depense.setMontant(montant);
+        depense.setDate(date);
+        depense.setLead(savedLead);
+
+        // Enregistrer la dépense
+        depenseService.createDepense(depense);
+
+        // Ajouter un message de succès
+        redirectAttributes.addFlashAttribute("successMessage", "Le lead a été confirmé avec succès.");
         return "redirect:/employee/lead/assigned-leads";
     }
 
@@ -266,8 +342,6 @@ public class LeadController {
             customers = customerService.findAll();
         } else {
             employees.add(loggedInUser);
-            //In case Employee's manager assign lead for the employee with a customer that's not created by this employee
-            //As a result of that the employee mustn't change the customer
             if(!Objects.equals(employee.getId(), lead.getManager().getId())) {
                 customers.add(lead.getCustomer());
             } else {

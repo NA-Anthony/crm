@@ -43,4 +43,9 @@ public class DepenseServiceImpl implements DepenseService {
     public void deleteDepense(Integer id) {
         depenseRepository.deleteById(id);
     }
+
+    @Override
+    public Double getTotalDepensesByCustomerId(Integer customerId) {
+        return depenseRepository.getTotalDepensesByCustomerId(customerId);
+    }
 }

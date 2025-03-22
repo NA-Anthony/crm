@@ -9,4 +9,5 @@ public interface DepenseService {
     Depense createDepense(Depense depense);
     Depense updateDepense(Integer id, Depense depense);
     void deleteDepense(Integer id);
+    Double getTotalDepensesByCustomerId(Integer customerId);
 }

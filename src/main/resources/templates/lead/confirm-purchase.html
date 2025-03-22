@@ -1,27 +1,21 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
-<div th:insert="~{/general/head.html}"></div>
-<meta name="_csrf" content="${_csrf.token}"/>
-<meta name="_csrf_header" content="${_csrf.headerName}"/>
+<head>
+    <div th:insert="~{/general/head.html}"></div>
 
-<!-- Editable CSS -->
-<link rel="stylesheet" type="text/css"
-      th:href="@{/css/dataTables.bootstrap4.css}">
-<link rel="stylesheet" type="text/css"
-      th:href="@{/css/responsive.dataTables.min.css}">
+    <!-- Custom CSS -->
+    <link th:href="@{/css/bootstrap-wysihtml5.css}" rel="stylesheet">
+    <link th:href="@{/css/style.min.css}" rel="stylesheet">
+    <!-- page css -->
+    <link th:href="@{/css/pages/inbox.css}" rel="stylesheet">
 
-<!-- Custom CSS -->
-<link th:href="@{/css/style.min.css}" rel="stylesheet">
-<!-- page css -->
-<link th:href="@{/css/pages/inbox.css}" rel="stylesheet">
-
-<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-<!--[if lt IE 9]>
-<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-<![endif]-->
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
 </head>
 
 <body class="skin-blue fixed-layout">
@@ -74,65 +68,32 @@
                 <div class="col-lg-12">
                     <div class="card">
                         <div class="card-body">
-                            <h4 class="card-title">Tickets</h4>
-                            <div th:if="${alertMessage}" class="alert alert-warning">
-                                <span th:text="${alertMessage}"></span>
-                            </div>
+                            <h4 class="card-title">Confirmation d'achat</h4>
 
                             <!-- Afficher le message de confirmation -->
-                            <div th:if="${confirmationMessage}" class="alert alert-danger">
+                            <div th:if="${confirmationMessage}" class="alert alert-warning">
                                 <span th:text="${confirmationMessage}"></span>
-
-                                <!-- Afficher les boutons de confirmation si nécessaire -->
-                                <div th:if="${showConfirmationButtons}">
-                                    <form th:action="@{/employee/ticket/confirm-purchase}" method="post" style="display: inline;">
-                                        <button type="submit" class="btn btn-success">Oui, continuer</button>
-                                    </form>
-                                    <form th:action="@{/employee/ticket/cancel-purchase}" method="post" style="display: inline;">
-                                        <button type="submit" class="btn btn-danger">Non, annuler</button>
-                                    </form>
-                                </div>
                             </div>
 
-                            <!-- Afficher le message d'avertissement -->
-                            <div th:if="${warningMessage}" class="alert alert-info">
-                                <span th:text="${warningMessage}"></span>
-                            </div>
-                            <div class="table-responsive m-t-40">
-                                <table id="config-table" class="table display table-bordered table-striped no-wrap">
-                                    <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Subject</th>
-                                        <th>priority</th>
-                                        <th>Status</th>
-                                        <th>Customer</th>
-                                        <th>Assigned Employee</th>
-                                        <th>Show Full Details</th>
-                                        <th>Edit</th>
-                                        <th>Delete</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr th:if="${tickets != null}" th:each="ticket : ${tickets}">
-                                        <td th:text="${ticket.ticketId}"></td>
-                                        <td th:text="${ticket.subject}"></td>
-                                        <td th:text="${ticket.priority}"></td>
-                                        <td th:text="${ticket.status}"></td>
-                                        <td th:text="${ticket.customer.name}"></td>
-                                        <td th:text="${ticket.employee.username}"></td>
-                                        <td><a th:href="${home + 'employee/ticket/show-ticket/' + ticket.ticketId}"><i class="fas fa-eye"></i></a></td>
-                                        <td><a th:href="${home + 'employee/ticket/update-ticket/' + ticket.ticketId}"><i class="fas fa-edit"></i></a></td>
-                                        <td>
-                                            <form th:action="${home + 'employee/ticket/delete-ticket/' + ticket.ticketId}" method="post">
-                                                <button type="submit" class="btn btn-primary">
-                                                    <i class="mdi mdi-delete"></i>
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
+                            <!-- Boutons de confirmation -->
+                            <div>
+                                <form th:action="@{/employee/lead/confirm-action}" method="post" class="d-inline">
+                                    <!-- Champs pour le lead -->
+                                    <input type="hidden" name="name" th:value="${lead.name}">
+                                    <input type="hidden" name="phone" th:value="${lead.phone}">
+                                    <input type="hidden" name="status" th:value="${lead.status}">
+                                    <input type="hidden" name="customerId" th:value="${lead.customer.customerId}">
+                                    <input type="hidden" name="employeeId" th:value="${lead.employee.id}">
+
+                                    <input type="hidden" name="montant" th:value="${depense.montant}">
+                                    <input type="hidden" name="date" th:value="${depense.date}">
+
+                                    <button type="submit" class="btn btn-success">Oui, continuer</button>
+                                </form>
+
+                                <form th:action="${home + 'employee/lead/assigned-leads'}" method="get" class="d-inline">
+                                    <button type="submit" class="btn btn-danger">Non, annuler</button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -190,11 +151,11 @@
 <!--Custom JavaScript -->
 <script th:src="@{/js/library/custom.min.js}" type="text/javascript">></script>
 <!-- Editable -->
-<script th:src="@{/js/library/jquery.dataTables.min.js}"></script>
-<script th:src="@{/js/library/dataTables.responsive.min.js}"></script>
+<script th:src="@{/js/library/wysihtml5-0.3.0.js}"></script>
+<script th:src="@{/js/library/bootstrap-wysihtml5.js}"></script>
 <script>
-    $('#config-table').DataTable({
-        responsive: true
+    $(document).ready(function() {
+        $('.textarea_editor').wysihtml5();
     });
 </script>
 </body>

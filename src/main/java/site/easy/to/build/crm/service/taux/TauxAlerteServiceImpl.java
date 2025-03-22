@@ -41,4 +41,9 @@ public class TauxAlerteServiceImpl implements TauxAlerteService {
     public void deleteTauxAlerte(Integer id) {
         tauxAlerteRepository.deleteById(id);
     }
+
+    @Override
+    public TauxAlerte getLastTauxAlerte() {
+        return tauxAlerteRepository.findLastTauxAlerte();
+    }
 }

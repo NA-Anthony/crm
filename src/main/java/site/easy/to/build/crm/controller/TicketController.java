@@ -12,13 +12,16 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import site.easy.to.build.crm.entity.*;
 import site.easy.to.build.crm.entity.settings.TicketEmailSettings;
 import site.easy.to.build.crm.google.service.acess.GoogleAccessService;
 import site.easy.to.build.crm.google.service.gmail.GoogleGmailApiService;
+import site.easy.to.build.crm.service.budget.BudgetService;
 import site.easy.to.build.crm.service.customer.CustomerService;
 import site.easy.to.build.crm.service.depense.DepenseService;
 import site.easy.to.build.crm.service.settings.TicketEmailSettingsService;
+import site.easy.to.build.crm.service.taux.TauxAlerteService;
 import site.easy.to.build.crm.service.ticket.TicketService;
 import site.easy.to.build.crm.service.user.UserService;
 import site.easy.to.build.crm.util.*;
@@ -45,10 +48,12 @@ public class TicketController {
     private final GoogleGmailApiService googleGmailApiService;
     private final EntityManager entityManager;
     private final DepenseService depenseService;
+    private final BudgetService budgetService;
+    private final TauxAlerteService tauxAlerteService;
 
     @Autowired
     public TicketController(TicketService ticketService, AuthenticationUtils authenticationUtils, UserService userService, CustomerService customerService,
-                            TicketEmailSettingsService ticketEmailSettingsService, GoogleGmailApiService googleGmailApiService, EntityManager entityManager, DepenseService depenseService) {
+                            TicketEmailSettingsService ticketEmailSettingsService, GoogleGmailApiService googleGmailApiService, EntityManager entityManager, DepenseService depenseService, BudgetService budgetService, TauxAlerteService tauxAlerteService) {
         this.ticketService = ticketService;
         this.authenticationUtils = authenticationUtils;
         this.userService = userService;
@@ -57,6 +62,8 @@ public class TicketController {
         this.googleGmailApiService = googleGmailApiService;
         this.entityManager = entityManager;
         this.depenseService = depenseService;
+        this.budgetService = budgetService;
+        this.tauxAlerteService = tauxAlerteService;
     }
 
     @GetMapping("/show-ticket/{id}")
@@ -130,7 +137,7 @@ public class TicketController {
     public String createTicket(@ModelAttribute("ticket") @Validated Ticket ticket, BindingResult bindingResult, @RequestParam(required = false) Double montant,
                                @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date, @RequestParam("customerId") int customerId,
                                @RequestParam Map<String, String> formParams, Model model,
-                               @RequestParam("employeeId") int employeeId, Authentication authentication) {
+                               @RequestParam("employeeId") int employeeId, Authentication authentication, RedirectAttributes redirectAttributes) {
 
         int userId = authenticationUtils.getLoggedInUserId(authentication);
         User manager = userService.findById(userId);
@@ -174,14 +181,46 @@ public class TicketController {
         ticket.setEmployee(employee);
         ticket.setCreatedAt(LocalDateTime.now());
 
-        Ticket savedTicket = ticketService.save(ticket);
-
         if (montant != null && date != null) {
             Depense depense = new Depense();
             depense.setMontant(montant);
             depense.setDate(date);
-            depense.setTicket(savedTicket);
-            depenseService.createDepense(depense);
+
+            Double solde = budgetService.getSoldeByCustomerId(customerId);
+
+            Double totalDepenses = depenseService.getTotalDepensesByCustomerId(customerId);
+            if(totalDepenses != null){
+                montant += totalDepenses;
+            }
+            TauxAlerte tauxAlerte = tauxAlerteService.getLastTauxAlerte();
+            Double tauxAlerteValue = tauxAlerte.getTaux();
+
+            // Vérifier si le solde et le total des dépenses sont disponibles
+            if (solde != null) {
+                // Calculer le taux d'utilisation du budget
+                Double tauxUtilisation = (montant / solde) * 100;
+
+                // Vérifier si le taux d'alerte est atteint
+                if (tauxUtilisation >= tauxAlerteValue && tauxUtilisation < 100) {
+                    redirectAttributes.addFlashAttribute("alertMessage", "Attention : Vous avez atteint " + tauxUtilisation + "% de votre budget.");
+                }
+
+                else if (montant > solde) {
+                    redirectAttributes.addFlashAttribute("confirmationMessage",
+                            "Attention : Vous avez dépassé votre budget. Souhaitez-vous continuer l'achat ?");
+                    redirectAttributes.addFlashAttribute("showConfirmationButtons", true);
+                    model.addAttribute("ticket", ticket);
+                    model.addAttribute("depense", depense);
+                    model.addAttribute("confirmationMessage",
+                            "Attention : Vous avez dépassé votre budget. Souhaitez-vous continuer l'achat ?");
+                    return "ticket/confirm-purchase";
+                }
+                Ticket savedTicket = ticketService.save(ticket);
+                depense.setTicket(savedTicket);
+                depenseService.createDepense(depense);
+            } else {
+                redirectAttributes.addFlashAttribute("warningMessage", "Aucun budget ou dépenses définis pour ce client.");
+            }
         }
 
         return "redirect:/employee/ticket/assigned-tickets";
@@ -226,6 +265,46 @@ public class TicketController {
         model.addAttribute("customers",customers);
         model.addAttribute("ticket", ticket);
         return "ticket/update-ticket";
+    }
+
+    @PostMapping("/confirm-purchase")
+    public String confirmPurchase(@RequestParam("subject") String subject,
+                                  @RequestParam("description") String description,
+                                  @RequestParam("status") String status,
+                                  @RequestParam("priority") String priority,
+                                  @RequestParam("customerId") int customerId,
+                                  @RequestParam("employeeId") int employeeId,
+                                  @RequestParam("montant") Double montant,
+                                  @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                  RedirectAttributes redirectAttributes) {
+
+        Customer customer = customerService.findByCustomerId(customerId);
+        User employee = userService.findById(employeeId);
+
+        Ticket ticket = new Ticket();
+        ticket.setSubject(subject);
+        ticket.setDescription(description);
+        ticket.setStatus(status);
+        ticket.setPriority(priority);
+        ticket.setCustomer(customer);
+        ticket.setEmployee(employee);
+        ticket.setCreatedAt(LocalDateTime.now());
+
+        // Enregistrer le ticket
+        Ticket savedTicket = ticketService.save(ticket);
+
+        // Créer la dépense
+        Depense depense = new Depense();
+        depense.setMontant(montant);
+        depense.setDate(date);
+        depense.setTicket(savedTicket);
+
+        // Enregistrer la dépense
+        depenseService.createDepense(depense);
+
+        // Ajouter un message de succès
+        redirectAttributes.addFlashAttribute("successMessage", "L'achat a été confirmé avec succès.");
+        return "redirect:/employee/ticket/assigned-tickets";
     }
 
     @PostMapping("/update-ticket")

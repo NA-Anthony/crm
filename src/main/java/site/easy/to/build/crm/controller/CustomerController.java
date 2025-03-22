@@ -100,7 +100,15 @@ public class CustomerController {
             return "error/not-found";
         }
         customers = customerService.findByUserId(userId);
+
+        // Calculer le solde pour chaque client
+        Map<Integer, Double> soldes = new HashMap<>();
+        for (Customer customer : customers) {
+            Double solde = budgetService.getSoldeByCustomerId(customer.getCustomerId());
+            soldes.put(customer.getCustomerId(), solde);
+        }
         model.addAttribute("customers",customers);
+        model.addAttribute("soldes", soldes);
         return "customer/all-customers";
     }
 

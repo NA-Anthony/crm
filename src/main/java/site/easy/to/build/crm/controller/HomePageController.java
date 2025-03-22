@@ -14,6 +14,7 @@ import site.easy.to.build.crm.google.service.calendar.GoogleCalendarApiService;
 import site.easy.to.build.crm.service.contract.ContractService;
 import site.easy.to.build.crm.service.customer.CustomerLoginInfoService;
 import site.easy.to.build.crm.service.customer.CustomerService;
+import site.easy.to.build.crm.service.database.DatabaseService;
 import site.easy.to.build.crm.service.lead.LeadService;
 import site.easy.to.build.crm.service.ticket.TicketService;
 import site.easy.to.build.crm.service.weather.WeatherService;
@@ -34,11 +35,12 @@ public class HomePageController {
     private final AuthenticationUtils authenticationUtils;
     private final GoogleCalendarApiService googleCalendarApiService;
     private final CustomerLoginInfoService customerLoginInfoService;
+    private final DatabaseService databaseService;
 
     @Autowired
     public HomePageController(TicketService ticketService, CustomerService customerService, ContractService contractService, LeadService leadService,
                               WeatherService weatherService, AuthenticationUtils authenticationUtils, GoogleCalendarApiService googleCalendarApiService,
-                              CustomerLoginInfoService customerLoginInfoService) {
+                              CustomerLoginInfoService customerLoginInfoService,DatabaseService databaseService) {
         this.ticketService = ticketService;
         this.customerService = customerService;
         this.contractService = contractService;
@@ -47,6 +49,7 @@ public class HomePageController {
         this.authenticationUtils = authenticationUtils;
         this.googleCalendarApiService = googleCalendarApiService;
         this.customerLoginInfoService = customerLoginInfoService;
+        this.databaseService = databaseService;
     }
 
     @GetMapping("/")
@@ -61,6 +64,7 @@ public class HomePageController {
         long countTickets;
         long countLeads;
         long countContracts;
+        List<String> tables;
 
         if(AuthorizationUtil.hasRole(authentication,"ROLE_CUSTOMER")) {
             String email = customerLoginInfoService.findById(userId).getEmail();
@@ -85,6 +89,7 @@ public class HomePageController {
             countLeads = leadService.countByEmployeeId(userId);
             Long countCustomers = customerService.countByUserId(userId);
             countContracts = contractService.countByUserId(userId);
+            tables = databaseService.getFilteredTables();
             List<EventDisplay> eventDisplays = null;
             boolean hasCalendarAccess = false;
             boolean isGoogleUser = false;
@@ -106,7 +111,7 @@ public class HomePageController {
             model.addAttribute("eventDisplays", eventDisplays);
             model.addAttribute("hasCalendarAccess", hasCalendarAccess);
             model.addAttribute("isGoogleUser", isGoogleUser);
-
+            model.addAttribute("tables",tables);
         }
         model.addAttribute("tickets", tickets);
         model.addAttribute("leads", leads);

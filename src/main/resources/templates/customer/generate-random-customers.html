@@ -12,6 +12,8 @@
 <!-- page css -->
 <link th:href="@{/css/pages/inbox.css}" rel="stylesheet">
 
+<link th:href="@{/css/ribbon-page.css}" rel="stylesheet">
+
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
 <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
 <!--[if lt IE 9]>
@@ -67,67 +69,29 @@
             <!-- Start Page Content -->
             <!-- ============================================================== -->
             <div class="row">
-                <div class="col-lg-4 col-xlg-3 col-md-5">
+                <div class="col-lg-12">
                     <div class="card">
                         <div class="card-body">
-                            <center class="m-t-30"> <img th:src="@{/images/pp.png}" class="img-circle" width="150" />
-                                <h4 class="card-title m-t-10" th:text="${user?.username}"></h4>
-                                <h6 class="card-subtitle" th:text="${profile?.position}"></h6>
-                            </center>
-                        </div>
-                        <div>
-                            <hr>
-                        </div>
-                        <div class="card-body">
-                            <small class="text-muted">Email address </small>
-                            <h6 th:text="${user?.email}"></h6>
-                            <small class="text-muted p-t-30 db">Phone</small>
-                            <h6 th:text="${profile?.phone}"></h6>
-                            <small class="text-muted p-t-30 db">Address</small>
-                            <h6 th:text="${profile?.address}"></h6>
-                            <small class="text-muted p-t-30 db">Social Profile</small>
-                            <br/>
-                            <a th:href="${profile?.facebook}" target="_blank"><button class="btn btn-circle btn-secondary"><i class="fab fa-facebook-f"></i></button></a>
-                            <a th:href="${profile?.twitter}" target="_blank"><button class="btn btn-circle btn-secondary"><i class="fab fa-twitter"></i></button></a>
-                            <a th:href="${profile?.youtube}" target="_blank"><button class="btn btn-circle btn-secondary"><i class="fab fa-youtube"></i></button></a>
-                        </div>
-                    </div>
-                </div>
-                <!-- Column -->
-                <!-- Column -->
-                <div class="col-lg-8 col-xlg-9 col-md-7">
-                    <div class="card">
-                        <!-- Nav tabs -->
-                        <ul class="nav nav-tabs profile-tab" role="tablist">
-                            <li class="nav-item"> <a class="nav-link active" data-toggle="tab" href="#profile" role="tab">Profile</a> </li>
-                        </ul>
-                        <!-- Tab panes -->
-                        <div class="tab-content">
-                            <!--second tab-->
-                            <div class="tab-pane active" id="profile" role="tabpanel">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-3 col-xs-6 b-r"> <strong>Full Name</strong>
-                                            <br>
-                                            <p class="text-muted" th:text="${profile?.firstName +' ' +profile?.lastName}"></p>
-                                        </div>
-                                        <div class="col-md-3 col-xs-6 b-r"> <strong>Mobile</strong>
-                                            <br>
-                                            <p class="text-muted" th:text="${profile?.phone}"></p>
-                                        </div>
-                                        <div class="col-md-3 col-xs-6 b-r"> <strong>Email</strong>
-                                            <br>
-                                            <p class="text-muted" th:text="${user?.email}"></p>
-                                        </div>
-                                        <div class="col-md-3 col-xs-6"> <strong>Location</strong>
-                                            <br>
-                                            <p class="text-muted" th:text="${profile?.country}"></p>
-                                        </div>
-                                    </div>
-                                    <hr>
-                                    <p class="m-t-30" th:utext="${profile?.department}"></p>
-                                </div>
+                            <h4 class="card-title">Generate Random Customers</h4>
+
+                            <!-- Afficher les messages de succès ou d'erreur -->
+                            <div th:if="${successMessage}" class="alert alert-success">
+                                <p th:text="${successMessage}"></p>
                             </div>
+                            <div th:if="${errorMessage}" class="alert alert-danger">
+                                <p th:text="${errorMessage}"></p>
+                            </div>
+
+                            <!-- Formulaire pour spécifier le nombre de clients à générer -->
+                            <form th:action="@{/employee/customer/generate-random-customers}" method="post">
+                                <div class="form-group">
+                                    <label for="numberOfCustomers">Number of Customers</label>
+                                    <input type="number" id="numberOfCustomers" name="numberOfCustomers" th:value="${numberOfCustomers}" min="1" required class="form-control">
+                                </div>
+
+                                <!-- Bouton pour générer les clients -->
+                                <button type="submit" class="btn btn-primary">Generate</button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -187,5 +151,11 @@
 
 <script th:src="@{/js/library/wysihtml5-0.3.0.js}"></script>
 <script th:src="@{/js/library/bootstrap-wysihtml5.js}"></script>
+<script>
+    $(document).ready(function() {
+        $('.textarea_editor').wysihtml5();
+    });
+</script>
+
 </body>
 </html>

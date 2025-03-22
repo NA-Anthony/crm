@@ -17,9 +17,12 @@ import site.easy.to.build.crm.entity.OAuthUser;
 import site.easy.to.build.crm.entity.User;
 import site.easy.to.build.crm.google.service.acess.GoogleAccessService;
 import site.easy.to.build.crm.google.service.gmail.GoogleGmailApiService;
+import site.easy.to.build.crm.repository.BudgetRepository;
+import site.easy.to.build.crm.service.budget.BudgetService;
 import site.easy.to.build.crm.service.contract.ContractService;
 import site.easy.to.build.crm.service.customer.CustomerLoginInfoService;
 import site.easy.to.build.crm.service.customer.CustomerService;
+import site.easy.to.build.crm.service.data.DataGeneratorService;
 import site.easy.to.build.crm.service.lead.LeadService;
 import site.easy.to.build.crm.service.ticket.TicketService;
 import site.easy.to.build.crm.service.user.UserService;
@@ -28,7 +31,9 @@ import site.easy.to.build.crm.util.AuthorizationUtil;
 import site.easy.to.build.crm.util.EmailTokenUtils;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/employee/customer")
@@ -43,11 +48,13 @@ public class CustomerController {
     private final TicketService ticketService;
     private final ContractService contractService;
     private final LeadService leadService;
+    private final DataGeneratorService dataGeneratorService;
+    private final BudgetService budgetService;
 
     @Autowired
     public CustomerController(CustomerService customerService, UserService userService, CustomerLoginInfoService customerLoginInfoService,
                               AuthenticationUtils authenticationUtils, GoogleGmailApiService googleGmailApiService, Environment environment,
-                              TicketService ticketService, ContractService contractService, LeadService leadService) {
+                              TicketService ticketService, ContractService contractService, LeadService leadService, DataGeneratorService dataGeneratorService, BudgetService budgetService) {
         this.customerService = customerService;
         this.userService = userService;
         this.customerLoginInfoService = customerLoginInfoService;
@@ -57,17 +64,30 @@ public class CustomerController {
         this.ticketService = ticketService;
         this.contractService = contractService;
         this.leadService = leadService;
+        this.dataGeneratorService = dataGeneratorService;
+        this.budgetService = budgetService;
     }
 
     @GetMapping("/manager/all-customers")
-    public String getAllCustomers(Model model){
+    public String getAllCustomers(Model model) {
         List<Customer> customers;
         try {
+            // Récupérer tous les clients
             customers = customerService.findAll();
-        } catch (Exception e){
+
+            // Calculer le solde pour chaque client
+            Map<Integer, Double> soldes = new HashMap<>();
+            for (Customer customer : customers) {
+                Double solde = budgetService.getSoldeByCustomerId(customer.getCustomerId());
+                soldes.put(customer.getCustomerId(), solde);
+            }
+
+            // Ajouter les clients et les soldes au modèle
+            model.addAttribute("customers", customers);
+            model.addAttribute("soldes", soldes);
+        } catch (Exception e) {
             return "error/500";
         }
-        model.addAttribute("customers",customers);
         return "customer/all-customers";
     }
 
@@ -209,5 +229,42 @@ public class CustomerController {
         return "redirect:/employee/customer/my-customers";
     }
 
+    @GetMapping("/generate-random-customer")
+    public String showGenerateRandomCustomersForm(Model model, Authentication authentication) {
+        int userId = authenticationUtils.getLoggedInUserId(authentication);
+        User user = userService.findById(userId);
+        if (user.isInactiveUser()) {
+            return "error/account-inactive";
+        }
 
+        // Ajouter un attribut pour le formulaire
+        model.addAttribute("numberOfCustomers", 1); // Valeur par défaut
+        return "customer/generate-random-customers";
+    }
+
+    @PostMapping("/generate-random-customers")
+    public String generateRandomCustomers(
+            @RequestParam("numberOfCustomers") int numberOfCustomers,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        int userId = authenticationUtils.getLoggedInUserId(authentication);
+        User user = userService.findById(userId);
+        if (user.isInactiveUser()) {
+            return "error/account-inactive";
+        }
+
+        try {
+            // Appeler le service pour générer les clients
+            dataGeneratorService.generateRandomCustomers(numberOfCustomers, authentication);
+
+            // Ajouter un message de succès
+            redirectAttributes.addFlashAttribute("successMessage", "Successfully generated " + numberOfCustomers + " random customers.");
+        } catch (Exception e) {
+            // Ajouter un message d'erreur en cas d'échec
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to generate random customers: " + e.getMessage());
+        }
+
+        return "redirect:/";
+    }
 }

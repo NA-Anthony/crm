@@ -39,6 +39,7 @@ public class CustomerLoginController {
             return "redirect:/set-password";
         }
         CustomerLoginInfo customerLoginInfo1 = customerLoginInfoService.findByToken(token);
+        System.out.println(customerLoginInfo1);
         if(customerLoginInfo1 == null) {
             return "redirect:/set-password";
         }

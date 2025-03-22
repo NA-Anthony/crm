@@ -1,4 +1,4 @@
-<aside class="left-sidebar">
+<aside class="left-sidebar" xmlns:th="http://www.w3.org/1999/xhtml">
     <!-- Sidebar scroll-->
     <div class="scroll-sidebar">
         <!-- Sidebar navigation-->
@@ -17,6 +17,11 @@
                         <li>
                             <a th:if="${#authentication.principal instanceof T(org.springframework.security.core.userdetails.User) and !#authorization.expression('hasRole(''ROLE_CUSTOMER'')')}"
                                th:href="${home + 'change-password'}" class="dropdown-item"><i class="fas fa-key"></i> change password</a>
+                        </li>
+                        <li>
+                            <form th:action="@{/delete-all-data}" method="get">
+                                <button type="submit"><i class="fa fa-trash"></i> Delete Data</button>
+                            </form>
                         </li>
                         <li>
                             <form th:action="@{/logout}" method="post">
@@ -152,6 +157,40 @@
                         <li><a th:if="${#authorization.expression('hasRole(''ROLE_MANAGER'')')}" th:href="${home + 'employee/email-template/manager/show-all'}">All Templates</a></li>
                         <li><a th:href="${home + 'employee/email-template/my-templates'}">My Templates</a></li>
                         <li><a th:href="${home + 'employee/email-template/create'}">Create Template</a></li>
+                    </ul>
+                </li>
+                <li class="nav-small-cap">--- Taux</li>
+                <li>
+                    <a class="has-arrow waves-effect waves-dark" href="javascript:void(0)">
+                        <i class="fas fa-coins"></i>
+                        <span class="hide-menu">Taux Alerte</span>
+                    </a>
+                    <ul class="collapse">
+                        <li><a th:href="${home + 'taux-alertes'}">Taux</a></li>
+                        <li><a th:href="${home + 'taux-alertes/create'}">Create Taux Alerte</a></li>
+                    </ul>
+                </li>
+                <li class="nav-small-cap">--- Budgets</li>
+                <li>
+                    <a class="has-arrow waves-effect waves-dark" href="javascript:void(0)">
+                        <i class="fas fa-coins"></i> <!-- Icône pour les budgets -->
+                        <span class="hide-menu">Budgets</span>
+                    </a>
+                    <ul class="collapse">
+                        <li><a th:href="${home + 'budgets'}">Liste des Budgets</a></li>
+                        <li><a th:href="${home + 'budgets/create'}">Créer un Budget</a></li>
+                    </ul>
+                </li>
+                <li class="nav-small-cap">--- Generate Data</li>
+                <li>
+                    <a class="has-arrow waves-effect waves-dark" href="javascript:void(0)">
+                        <i class="fas fa-file-csv"></i>
+                        <span class="hide-menu">Datas</span>
+                    </a>
+                    <ul class="collapse" th:if="${tables != null and !tables.empty}">
+                        <li th:each="table : ${tables}">
+                            <a th:href="${home + 'employee/customer/generate-random-' + table}" th:text="${table}"></a>
+                        </li>
                     </ul>
                 </li>
             </ul>

@@ -1,13 +1,12 @@
 package site.easy.to.build.crm.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,21 +18,13 @@ import site.easy.to.build.crm.config.oauth2.OAuthLoginSuccessHandler;
 import site.easy.to.build.crm.service.user.OAuthUserService;
 import site.easy.to.build.crm.util.StringUtils;
 
-import java.util.Optional;
-
-
 @Configuration
 public class SecurityConfig {
 
-
     private final OAuthLoginSuccessHandler oAuth2LoginSuccessHandler;
-
     private final CustomOAuth2UserService oauthUserService;
-
     private final CrmUserDetails crmUserDetails;
-
     private final CustomerUserDetails customerUserDetails;
-
     private final Environment environment;
 
     @Autowired
@@ -47,9 +38,25 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(2)
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1) // Priorité la plus élevée
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/api/**") // Appliquer cette configuration uniquement aux URLs commençant par /api
+                .csrf(csrf -> csrf.disable()) // Désactiver CSRF pour les API
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Désactiver les sessions
+                )
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/login").permitAll() // Autoriser l'accès à /api/auth/login sans authentification
+                        .anyRequest().authenticated() // Toutes les autres requêtes API nécessitent une authentification
+                );
 
+        return http.build();
+    }
+
+    @Bean
+    @Order(2) // Priorité moyenne
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         HttpSessionCsrfTokenRepository httpSessionCsrfTokenRepository = new HttpSessionCsrfTokenRepository();
         httpSessionCsrfTokenRepository.setParameterName("csrf");
 
@@ -57,9 +64,8 @@ public class SecurityConfig {
                 .csrfTokenRepository(httpSessionCsrfTokenRepository)
         );
 
-        http.
-                authorizeHttpRequests((authorize) -> authorize
-
+        http
+                .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers("/register/**").permitAll()
                         .requestMatchers("/set-employee-password/**").permitAll()
                         .requestMatchers("/change-password/**").permitAll()
@@ -74,7 +80,6 @@ public class SecurityConfig {
                         .requestMatchers("/customer/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated()
                 )
-
                 .formLogin((form) -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
@@ -95,20 +100,12 @@ public class SecurityConfig {
                     exception.accessDeniedHandler(accessDeniedHandler());
                 });
 
-
         return http.build();
     }
 
     @Bean
-    public AccessDeniedHandler accessDeniedHandler() {
-        return new CustomAccessDeniedHandler();
-    }
-
-    @Bean
-    @Order(1)
+    @Order(3) // Priorité la plus basse
     public SecurityFilterChain customerSecurityFilterChain(HttpSecurity http) throws Exception {
-
-
         HttpSessionCsrfTokenRepository httpSessionCsrfTokenRepository = new HttpSessionCsrfTokenRepository();
         httpSessionCsrfTokenRepository.setParameterName("csrf");
 
@@ -116,8 +113,8 @@ public class SecurityConfig {
                 .csrfTokenRepository(httpSessionCsrfTokenRepository)
         );
 
-        http.securityMatcher("/customer-login/**").
-                authorizeHttpRequests((authorize) -> authorize
+        http.securityMatcher("/customer-login/**")
+                .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers("/set-password/**").permitAll()
                         .requestMatchers("/font-awesome/**").permitAll()
                         .requestMatchers("/fonts/**").permitAll()
@@ -127,7 +124,6 @@ public class SecurityConfig {
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/**/manager/**")).hasRole("MANAGER")
                         .anyRequest().authenticated()
                 )
-
                 .formLogin((form) -> form
                         .loginPage("/customer-login")
                         .loginProcessingUrl("/customer-login")
@@ -140,6 +136,11 @@ public class SecurityConfig {
                         .permitAll());
 
         return http.build();
+    }
+
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+        return new CustomAccessDeniedHandler();
     }
 
     @Bean

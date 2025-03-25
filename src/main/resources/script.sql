@@ -21,3 +21,14 @@ CREATE TABLE depense (
     CONSTRAINT fk_depense_ticket FOREIGN KEY (id_ticket) REFERENCES trigger_ticket(ticket_id) ON DELETE SET NULL,
     CONSTRAINT fk_depense_lead FOREIGN KEY (id_lead) REFERENCES trigger_lead(lead_id) ON DELETE SET NULL
 );
+
+CREATE OR REPLACE VIEW ticket_status_count AS
+SELECT customer_id, status, COUNT(*) AS ticket_count
+FROM trigger_ticket
+GROUP BY customer_id, status;
+
+CREATE OR REPLACE VIEW ticket_priority_count AS
+SELECT customer_id, priority, COUNT(*) AS ticket_count
+FROM trigger_ticket
+GROUP BY customer_id, priority;
+

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <div th:insert="~{/general/head.html}"></div>
+    <meta name="_csrf" content="${_csrf.token}"/>
+    <meta name="_csrf_header" content="${_csrf.headerName}"/>
+
+    <!-- Editable CSS -->
+    <link rel="stylesheet" type="text/css" th:href="@{/css/dataTables.bootstrap4.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/responsive.dataTables.min.css}">
+    <link th:href="@{/css/login-register-lock.css}" rel="stylesheet">
+    <link th:href="@{/css/jquery.toast.css}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link th:href="@{/css/style.min.css}" rel="stylesheet">
+    <!-- page css -->
+    <link th:href="@{/css/pages/file-upload.css}" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body class="skin-blue fixed-layout">
+<!-- ============================================================== -->
+<!-- Preloader - style you can find in spinners.css -->
+<!-- ============================================================== -->
+<div class="preloader">
+    <div class="loader">
+        <div class="loader__figure"></div>
+        <p class="loader__label">CRM</p>
+    </div>
+</div>
+<!-- ============================================================== -->
+<!-- Main wrapper - style you can find in pages.scss -->
+<!-- ============================================================== -->
+<div id="main-wrapper">
+    <!-- ============================================================== -->
+    <!-- Topbar header - style you can find in pages.scss -->
+    <!-- ============================================================== -->
+    <div th:insert="~{/general/header.html}"></div>
+    <!-- ============================================================== -->
+    <!-- End Topbar header -->
+    <!-- ============================================================== -->
+    <!-- ============================================================== -->
+    <!-- Left Sidebar - style you can find in sidebar.scss  -->
+    <!-- ============================================================== -->
+    <div th:insert="~{/general/left-sidebar.html}"></div>
+    <!-- ============================================================== -->
+    <!-- End Left Sidebar - style you can find in sidebar.scss  -->
+    <!-- ============================================================== -->
+    <!-- ============================================================== -->
+    <!-- Page wrapper  -->
+    <!-- ============================================================== -->
+    <div class="page-wrapper">
+        <!-- ============================================================== -->
+        <!-- Container fluid  -->
+        <!-- ============================================================== -->
+        <div class="container-fluid">
+            <!-- ============================================================== -->
+            <!-- Bread crumb and right sidebar toggle -->
+            <!-- ============================================================== -->
+            <div class="row page-titles">
+                <div class="col-md-5 align-self-center">
+                    <h4 class="text-themecolor">Import CSV</h4>
+                </div>
+                <div class="col-md-7 align-self-center text-end">
+                    <div class="d-flex justify-content-end align-items-center">
+                        <ol class="breadcrumb justify-content-end">
+                            <li class="breadcrumb-item"><a href="javascript:void(0)">Home</a></li>
+                            <li class="breadcrumb-item active">Import CSV</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <!-- ============================================================== -->
+            <!-- End Bread crumb and right sidebar toggle -->
+            <!-- ============================================================== -->
+            <!-- ============================================================== -->
+            <!-- Start Page Content -->
+            <!-- ============================================================== -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <!-- Messages d'erreur/succès -->
+                            <div th:if="${message}" class="alert alert-success">
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                                <i class="fa fa-check-circle"></i>
+                                <span th:text="${message}"></span>
+                            </div>
+                            <div th:if="${error}" class="alert alert-danger">
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                                <i class="fa fa-exclamation-circle"></i>
+                                <span th:text="${error}"></span>
+                            </div>
+
+                            <!-- Affichage des erreurs d'import -->
+                            <div th:if="${errors}" class="alert alert-warning">
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                                <i class="fa fa-exclamation-triangle"></i>
+                                <strong>Erreurs lors de l'import :</strong>
+                                <ul>
+                                    <li th:each="error : ${errors}" th:text="${error}"></li>
+                                </ul>
+                            </div>
+
+                            <h4 class="card-title">Importer un fichier CSV</h4>
+                            <form th:action="@{/csv/import}" method="post" enctype="multipart/form-data">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                <div class="form-group">
+                                    <label for="csvFile">Fichier CSV</label>
+                                    <div class="input-group">
+                                        <div class="custom-file">
+                                            <input type="file" class="custom-file-input" id="csvFile" name="file" accept=".csv" required>
+                                            <label class="custom-file-label" for="csvFile">Choisir un fichier...</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-upload"></i> Importer
+                                </button>
+                                <a th:href="@{/}" class="btn btn-secondary">Annuler</a>
+                            </form>
+
+                            <div class="mt-4">
+                                <h5>Exemple de format CSV</h5>
+                                <div class="alert alert-info">
+                                    <p>Le fichier doit contenir des colonnes correspondantes aux tables de destination.</p>
+                                    <p>Le système détectera automatiquement la table appropriée en fonction des colonnes.</p>
+                                    <pre>colonne1,colonne2,colonne3
+valeur1,valeur2,valeur3
+valeur4,valeur5,valeur6</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- ============================================================== -->
+            <!-- End Page Content -->
+            <!-- ============================================================== -->
+            <!-- ============================================================== -->
+            <!-- Right sidebar -->
+            <!-- ============================================================== -->
+            <!-- .right-sidebar -->
+            <div th:insert="~{/general/right-sidebar.html}"></div>
+            <!-- ============================================================== -->
+            <!-- End Right sidebar -->
+            <!-- ============================================================== -->
+        </div>
+        <!-- ============================================================== -->
+        <!-- End Container fluid  -->
+        <!-- ============================================================== -->
+    </div>
+    <!-- ============================================================== -->
+    <!-- End Page wrapper  -->
+    <!-- ============================================================== -->
+    <!-- ============================================================== -->
+    <!-- footer -->
+    <!-- ============================================================== -->
+    <div th:insert="~{/general/footer.html}"></div>
+    <!-- ============================================================== -->
+    <!-- End footer -->
+    <!-- ============================================================== -->
+</div>
+<!-- ============================================================== -->
+<!-- End Wrapper -->
+<!-- ============================================================== -->
+<!-- ============================================================== -->
+<!-- All Jquery -->
+<!-- ============================================================== -->
+<script th:inline="javascript">
+    var home = /*[[${home}]]*/ null;
+</script>
+<script th:src="@{/js/library/jquery-3.2.1.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/library/popper.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/library/bootstrap.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/library/perfect-scrollbar.jquery.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/library/waves.js}" type="text/javascript"></script>
+<script th:src="@{/js/library/sidebarmenu.js}" type="text/javascript"></script>
+<script th:src="@{/js/library/sticky-kit.min.js}"></script>
+<script th:src="@{/js/library/jquery.sparkline.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/library/custom.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/library/jquery.toast.js}"></script>
+<script th:src="@{/js/library/toastr.js}"></script>
+<script th:src="@{/js/library/jquery.dataTables.min.js}"></script>
+<script th:src="@{/js/library/dataTables.responsive.min.js}"></script>
+
+<script>
+    // Affichage du nom du fichier sélectionné
+    document.querySelector('.custom-file-input').addEventListener('change', function(e) {
+        var fileName = e.target.files[0].name;
+        var nextSibling = e.target.nextElementSibling;
+        nextSibling.innerText = fileName;
+    });
+
+    // Gestion des messages toast
+    $(document).ready(function() {
+        if ($(".alert-success").length) {
+            $.toast({
+                heading: 'Succès',
+                text: $(".alert-success span").text(),
+                position: 'top-right',
+                loaderBg: '#ff6849',
+                icon: 'success',
+                hideAfter: 3000,
+                stack: 6
+            });
+        }
+        if ($(".alert-danger").length) {
+            $.toast({
+                heading: 'Erreur',
+                text: $(".alert-danger span").text(),
+                position: 'top-right',
+                loaderBg: '#ff6849',
+                icon: 'error',
+                hideAfter: 5000,
+                stack: 6
+            });
+        }
+        if ($(".alert-warning").length) {
+            $.toast({
+                heading: 'Avertissement',
+                text: "Des erreurs sont survenues lors de l'import",
+                position: 'top-right',
+                loaderBg: '#ff6849',
+                icon: 'warning',
+                hideAfter: 5000,
+                stack: 6
+            });
+        }
+    });
+</script>
+</body>
+</html>

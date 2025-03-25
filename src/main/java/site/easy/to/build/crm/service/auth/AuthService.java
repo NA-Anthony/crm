@@ -1,4 +1,4 @@
-package site.easy.to.build.crm.service;
+package site.easy.to.build.crm.service.auth;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;

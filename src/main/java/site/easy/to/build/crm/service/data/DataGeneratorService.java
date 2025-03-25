@@ -6,16 +6,22 @@ import org.springframework.core.env.Environment;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
-import site.easy.to.build.crm.entity.Customer;
-import site.easy.to.build.crm.entity.CustomerLoginInfo;
-import site.easy.to.build.crm.entity.OAuthUser;
+import site.easy.to.build.crm.entity.*;
 import site.easy.to.build.crm.google.service.gmail.GoogleGmailApiService;
 import site.easy.to.build.crm.repository.CustomerLoginInfoRepository;
 import site.easy.to.build.crm.repository.CustomerRepository;
+import site.easy.to.build.crm.service.customer.CustomerService;
+import site.easy.to.build.crm.service.depense.DepenseService;
+import site.easy.to.build.crm.service.lead.LeadService;
+import site.easy.to.build.crm.service.taux.TauxAlerteService;
+import site.easy.to.build.crm.service.ticket.TicketService;
+import site.easy.to.build.crm.service.user.UserService;
 import site.easy.to.build.crm.util.AuthenticationUtils;
 import site.easy.to.build.crm.util.EmailTokenUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Random;
 
 @Service
@@ -26,6 +32,9 @@ public class DataGeneratorService {
 
     @Autowired
     private CustomerLoginInfoRepository customerLoginInfoRepository;
+
+    @Autowired
+    private UserService userService;
 
     private final Faker faker = new Faker();
     private final Random random = new Random();
@@ -39,13 +48,38 @@ public class DataGeneratorService {
     @Autowired
     private Environment environment;
 
-    public DataGeneratorService(CustomerRepository customerRepository, CustomerLoginInfoRepository customerLoginInfoRepository) {
+    @Autowired
+    private TauxAlerteService tauxAlerteService;
+
+    @Autowired
+    private CustomerService customerService;
+
+    @Autowired
+    private LeadService leadService;
+
+    @Autowired
+    private TicketService ticketService;
+
+    @Autowired
+    private DepenseService depenseService;
+
+    public DataGeneratorService(CustomerRepository customerRepository,
+                                CustomerLoginInfoRepository customerLoginInfoRepository,
+                                UserService userService) {
         this.customerRepository = customerRepository;
         this.customerLoginInfoRepository = customerLoginInfoRepository;
+        this.userService = userService;
     }
 
     // Générer et sauvegarder un customer aléatoire
     public void generateRandomCustomer(Authentication authentication) {
+        // Récupérer tous les utilisateurs et en sélectionner un au hasard
+        List<User> users = userService.findAll();
+        if (users.isEmpty()) {
+            throw new IllegalStateException("No users found in database. Cannot generate customers.");
+        }
+        User randomUser = users.get(random.nextInt(users.size()));
+
         // Créer un nouveau customer
         Customer customer = new Customer();
         customer.setName(faker.name().fullName());
@@ -61,23 +95,23 @@ public class DataGeneratorService {
         customer.setYoutube(faker.internet().url());
         customer.setCreatedAt(LocalDateTime.now());
         customer.setEmail(faker.internet().emailAddress());
-
-        // Sauvegarder le customer
-        Customer savedCustomer = customerRepository.save(customer);
+        customer.setUser(randomUser);
 
         // Générer et sauvegarder les informations de connexion du customer
         CustomerLoginInfo customerLoginInfo = new CustomerLoginInfo();
-        customerLoginInfo.setEmail(savedCustomer.getEmail());
-        customerLoginInfo.setPassword(faker.internet().password());
+        customerLoginInfo.setEmail(customer.getEmail());
         customerLoginInfo.setUsername(faker.name().username());
         customerLoginInfo.setToken(faker.internet().uuid());
         customerLoginInfo.setPasswordSet(random.nextBoolean());
+        CustomerLoginInfo customerLoginInfo1 = customerLoginInfoRepository.save(customerLoginInfo);// Assigner l'utilisateur aléatoire
 
-        customerLoginInfo.setCustomer(savedCustomer);
-        customerLoginInfoRepository.save(customerLoginInfo);
+        customer.setCustomerLoginInfo(customerLoginInfo1);
+        Customer savedCustomer = customerRepository.save(customer);
+
+        customerLoginInfo1.setCustomer(savedCustomer);
 
         // Envoyer un email de bienvenue
-        sendRegistrationEmail(savedCustomer, customerLoginInfo, authentication);
+        sendRegistrationEmail(savedCustomer, customerLoginInfo1, authentication);
     }
 
     // Générer plusieurs customers aléatoires
@@ -95,5 +129,121 @@ public class DataGeneratorService {
             String url = baseUrl + "set-password?token=" + customerLoginInfo.getToken();
             EmailTokenUtils.sendRegistrationEmail(customerLoginInfo.getEmail(), customer.getName(), url, oAuthUser, googleGmailApiService);
         }
+    }
+
+    public void generateRandomTaux(int number) {
+        for (int i = 0; i < number; i++) {
+            TauxAlerte tauxAlerte = new TauxAlerte();
+            // Générer un taux aléatoire entre 0.00 et 100.00 inclus avec 2 décimales
+            double taux = Math.round(random.nextDouble() * 10000) / 100.0;
+            tauxAlerte.setTaux(taux);
+            tauxAlerteService.createTauxAlerte(tauxAlerte);
+        }
+    }
+
+    public void generateRandomBudget(int number) {
+        for (int i = 0; i < number; i++) {
+            TauxAlerte tauxAlerte = tauxAlerteService.getLastTauxAlerte();
+            Budget budget = new Budget();
+            List<Customer> users = customerService.findAll();
+            Customer randomCustomer = users.get(random.nextInt(users.size()));
+            budget.setCustomer(randomCustomer);
+            budget.setMontant((double) random.nextInt(1000001));
+            budget.setTauxAlerte(tauxAlerte);
+            tauxAlerteService.createTauxAlerte(tauxAlerte);
+        }
+    }
+
+    public void generateRandomTicket(int number) {
+        for (int i = 0; i < number; i++) {
+            Ticket ticket = new Ticket();
+            ticket.setSubject("ticket"+i);
+            ticket.setDescription(faker.lorem().paragraph());
+            ticket.setStatus(getRandomStatus());
+            ticket.setPriority(getRandomPriority());
+            List<Customer> customers = customerService.findAll();
+            Customer randomCustomer = customers.get(random.nextInt(customers.size()));
+            ticket.setCustomer(randomCustomer);
+            List<User> users = userService.findAll();
+            User randomUser1 = users.get(random.nextInt(users.size()));
+            User randomUser2 = users.get(random.nextInt(users.size()));
+            ticket.setEmployee(randomUser1);
+            ticket.setManager(randomUser2);
+            ticket.setCreatedAt(LocalDateTime.now());
+            Ticket ticket1 = ticketService.save(ticket);
+            Depense depense = new Depense();
+            depense.setTicket(ticket1);
+            depense.setMontant((double) random.nextInt(1000001));
+            depense.setDate(LocalDate.now());
+
+            depenseService.createDepense(depense);
+        }
+    }
+
+    public void generateRandomLead(int number) {
+        for (int i = 0; i < number; i++) {
+            Lead lead = new Lead();
+            lead.setName("lead"+i);
+            lead.setPhone(faker.phoneNumber().cellPhone());
+            lead.setStatus(getRandomStatusLead());
+            lead.setCreatedAt(LocalDateTime.now());
+            List<User> users = userService.findAll();
+            User randomUser1 = users.get(random.nextInt(users.size()));
+            User randomUser2 = users.get(random.nextInt(users.size()));
+            lead.setEmployee(randomUser1);
+            lead.setManager(randomUser2);
+            List<Customer> customers = customerService.findAll();
+            Customer randomCustomer = customers.get(random.nextInt(customers.size()));
+            lead.setCustomer(randomCustomer);
+
+            Lead lead1 = leadService.save(lead);
+            Depense depense = new Depense();
+            depense.setLead(lead1);
+            depense.setMontant((double) random.nextInt(1000001));
+            depense.setDate(LocalDate.now());
+
+            depenseService.createDepense(depense);
+        }
+    }
+
+    private String getRandomStatus() {
+        String[] statuses = {
+                "open",
+                "assigned",
+                "on-hold",
+                "in-progress",
+                "resolved",
+                "closed",
+                "reopened",
+                "pending-customer-response",
+                "escalated",
+                "archived"
+        };
+
+        return statuses[random.nextInt(statuses.length)];
+    }
+
+    private String getRandomStatusLead() {
+        String[] statuses = {
+                "meeting-to-schedule",
+                "assign-to-sales",
+                "archived",
+                "success"
+        };
+
+        return statuses[random.nextInt(statuses.length)];
+    }
+
+    private String getRandomPriority() {
+        String[] statuses = {
+                "low",
+                "medium",
+                "high",
+                "closed",
+                "urgent",
+                "critical"
+        };
+
+        return statuses[random.nextInt(statuses.length)];
     }
 }

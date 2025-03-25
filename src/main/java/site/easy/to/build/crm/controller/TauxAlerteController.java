@@ -1,11 +1,17 @@
 package site.easy.to.build.crm.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import site.easy.to.build.crm.entity.TauxAlerte;
+import site.easy.to.build.crm.entity.User;
+import site.easy.to.build.crm.service.data.DataGeneratorService;
 import site.easy.to.build.crm.service.taux.TauxAlerteService;
+import site.easy.to.build.crm.service.user.UserService;
+import site.easy.to.build.crm.util.AuthenticationUtils;
 
 import java.util.List;
 
@@ -15,6 +21,15 @@ public class TauxAlerteController {
 
     @Autowired
     private TauxAlerteService tauxAlerteService;
+
+    @Autowired
+    private AuthenticationUtils authenticationUtils;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private DataGeneratorService dataGeneratorService;
 
     // Afficher la liste des taux d'alerte
     @GetMapping
@@ -58,5 +73,44 @@ public class TauxAlerteController {
     public String deleteTauxAlerte(@PathVariable Integer id) {
         tauxAlerteService.deleteTauxAlerte(id);
         return "redirect:/taux-alertes"; // Redirige vers la liste des taux d'alerte
+    }
+
+    @GetMapping("/generate-random")
+    public String showGenerateRandomCustomersForm(Model model, Authentication authentication) {
+        int userId = authenticationUtils.getLoggedInUserId(authentication);
+        User user = userService.findById(userId);
+        if (user.isInactiveUser()) {
+            return "error/account-inactive";
+        }
+
+        // Ajouter un attribut pour le formulaire
+        model.addAttribute("numberOfTaux", 1); // Valeur par défaut
+        return "taux-alertes/generate-random";
+    }
+
+    @PostMapping("/generate-random")
+    public String generateRandomCustomers(
+            @RequestParam("numberOfTaux") int numberOfTaux,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        int userId = authenticationUtils.getLoggedInUserId(authentication);
+        User user = userService.findById(userId);
+        if (user.isInactiveUser()) {
+            return "error/account-inactive";
+        }
+
+        try {
+            // Appeler le service pour générer les clients
+            dataGeneratorService.generateRandomTaux(numberOfTaux);
+
+            // Ajouter un message de succès
+            redirectAttributes.addFlashAttribute("successMessage", "Successfully generated " + numberOfTaux + " random customers.");
+        } catch (Exception e) {
+            // Ajouter un message d'erreur en cas d'échec
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to generate random customers: " + e.getMessage());
+        }
+
+        return "redirect:/";
     }
 }

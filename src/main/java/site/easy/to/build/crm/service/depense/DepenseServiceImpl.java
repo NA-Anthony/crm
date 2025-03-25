@@ -1,6 +1,7 @@
 package site.easy.to.build.crm.service.depense;
 
 import site.easy.to.build.crm.entity.Depense;
+import site.easy.to.build.crm.entity.Ticket;
 import site.easy.to.build.crm.repository.DepenseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -47,5 +48,15 @@ public class DepenseServiceImpl implements DepenseService {
     @Override
     public Double getTotalDepensesByCustomerId(Integer customerId) {
         return depenseRepository.getTotalDepensesByCustomerId(customerId);
+    }
+
+    @Override
+    public Depense findByTicketId(Integer ticketId) {
+        return depenseRepository.findByTicketId(ticketId);
+    }
+
+    @Override
+    public Depense findByLeadId(Integer leadId) {
+        return depenseRepository.findByLeadId(leadId);
     }
 }

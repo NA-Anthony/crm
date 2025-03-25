@@ -11,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import site.easy.to.build.crm.config.oauth2.CustomOAuth2UserService;
@@ -47,8 +48,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Désactiver les sessions
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login").permitAll() // Autoriser l'accès à /api/auth/login sans authentification
-                        .anyRequest().authenticated() // Toutes les autres requêtes API nécessitent une authentification
+                        .anyRequest().permitAll()
                 );
 
         return http.build();

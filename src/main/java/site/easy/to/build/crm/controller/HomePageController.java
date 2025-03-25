@@ -111,7 +111,6 @@ public class HomePageController {
             model.addAttribute("eventDisplays", eventDisplays);
             model.addAttribute("hasCalendarAccess", hasCalendarAccess);
             model.addAttribute("isGoogleUser", isGoogleUser);
-            model.addAttribute("tables",tables);
         }
         model.addAttribute("tickets", tickets);
         model.addAttribute("leads", leads);

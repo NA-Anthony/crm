@@ -13,7 +13,7 @@ public class DatabaseServiceImpl implements DatabaseService {
 
     @Autowired
     private DatabaseRepository databaseRepository;
-    private static final List<String> EXCLUDED_TABLES = Arrays.asList("users", "roles", "oauth_users", "user_profile", "user_roles","customer_login_info");
+    private static final List<String> EXCLUDED_TABLES = Arrays.asList("users", "roles", "oauth_users", "user_profile", "user_roles","customer_login_info","contract_settings");
 
     @Override
     public List<String> getFilteredTables() {

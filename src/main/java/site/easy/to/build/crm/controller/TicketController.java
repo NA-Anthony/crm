@@ -19,6 +19,7 @@ import site.easy.to.build.crm.google.service.acess.GoogleAccessService;
 import site.easy.to.build.crm.google.service.gmail.GoogleGmailApiService;
 import site.easy.to.build.crm.service.budget.BudgetService;
 import site.easy.to.build.crm.service.customer.CustomerService;
+import site.easy.to.build.crm.service.data.DataGeneratorService;
 import site.easy.to.build.crm.service.depense.DepenseService;
 import site.easy.to.build.crm.service.settings.TicketEmailSettingsService;
 import site.easy.to.build.crm.service.taux.TauxAlerteService;
@@ -50,6 +51,9 @@ public class TicketController {
     private final DepenseService depenseService;
     private final BudgetService budgetService;
     private final TauxAlerteService tauxAlerteService;
+
+    @Autowired
+    private DataGeneratorService dataGeneratorService;
 
     @Autowired
     public TicketController(TicketService ticketService, AuthenticationUtils authenticationUtils, UserService userService, CustomerService customerService,
@@ -224,6 +228,45 @@ public class TicketController {
         }
 
         return "redirect:/employee/ticket/assigned-tickets";
+    }
+
+    @GetMapping("/generate-random")
+    public String showGenerateRandomCustomersForm(Model model, Authentication authentication) {
+        int userId = authenticationUtils.getLoggedInUserId(authentication);
+        User user = userService.findById(userId);
+        if (user.isInactiveUser()) {
+            return "error/account-inactive";
+        }
+
+        // Ajouter un attribut pour le formulaire
+        model.addAttribute("numberOfTaux", 1); // Valeur par défaut
+        return "ticket/generate-random";
+    }
+
+    @PostMapping("/generate-random")
+    public String generateRandomCustomers(
+            @RequestParam("numberOfTaux") int numberOfTaux,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        int userId = authenticationUtils.getLoggedInUserId(authentication);
+        User user = userService.findById(userId);
+        if (user.isInactiveUser()) {
+            return "error/account-inactive";
+        }
+
+        try {
+            // Appeler le service pour générer les clients
+            dataGeneratorService.generateRandomTicket(numberOfTaux);
+
+            // Ajouter un message de succès
+            redirectAttributes.addFlashAttribute("successMessage", "Successfully generated " + numberOfTaux + " random customers.");
+        } catch (Exception e) {
+            // Ajouter un message d'erreur en cas d'échec
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to generate random customers: " + e.getMessage());
+        }
+
+        return "redirect:/";
     }
 
     @GetMapping("/update-ticket/{id}")

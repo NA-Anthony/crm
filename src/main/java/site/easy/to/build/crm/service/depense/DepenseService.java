@@ -1,6 +1,8 @@
 package site.easy.to.build.crm.service.depense;
 
 import site.easy.to.build.crm.entity.Depense;
+import site.easy.to.build.crm.entity.Ticket;
+
 import java.util.List;
 
 public interface DepenseService {
@@ -10,4 +12,6 @@ public interface DepenseService {
     Depense updateDepense(Integer id, Depense depense);
     void deleteDepense(Integer id);
     Double getTotalDepensesByCustomerId(Integer customerId);
+    Depense findByTicketId(Integer ticketId);
+    Depense findByLeadId(Integer leadId);
 }

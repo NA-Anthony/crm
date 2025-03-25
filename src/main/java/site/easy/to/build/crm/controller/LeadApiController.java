@@ -8,6 +8,7 @@ import site.easy.to.build.crm.entity.Lead;
 import site.easy.to.build.crm.service.depense.DepenseService;
 import site.easy.to.build.crm.service.lead.LeadService;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -29,9 +30,13 @@ public class LeadApiController {
      * @return Une liste de tous les leads.
      */
     @GetMapping
-    public ResponseEntity<List<Lead>> getAllTickets(@RequestParam int userId) {
+    public ResponseEntity<List<Depense>> getAllTickets(@RequestParam int userId) {
         List<Lead> leads = leadService.findAssignedLeads(userId);
-        return ResponseEntity.ok(leads);
+        List<Depense> depenses = new ArrayList<>();
+        for (Lead lead : leads){
+            depenses.add(depenseService.findByLeadId(lead.getLeadId()));
+        }
+        return ResponseEntity.ok(depenses);
     }
 
     /**

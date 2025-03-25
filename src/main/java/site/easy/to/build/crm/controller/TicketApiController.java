@@ -8,6 +8,7 @@ import site.easy.to.build.crm.entity.Ticket;
 import site.easy.to.build.crm.service.depense.DepenseService;
 import site.easy.to.build.crm.service.ticket.TicketService;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -29,9 +30,13 @@ public class TicketApiController {
      * @return Une liste de tous les tickets.
      */
     @GetMapping
-    public ResponseEntity<List<Ticket>> getAllTickets(@RequestParam int userId) {
+    public ResponseEntity<List<Depense>> getAllTickets(@RequestParam int userId) {
         List<Ticket> tickets = ticketService.findEmployeeTickets(userId);
-        return ResponseEntity.ok(tickets);
+        List<Depense> depenses = new ArrayList<>();
+        for(Ticket ticket : tickets){
+            depenses.add(depenseService.findByTicketId(ticket.getTicketId()));
+        }
+        return ResponseEntity.ok(depenses);
     }
 
     /**

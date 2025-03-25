@@ -55,11 +55,10 @@ public class DataGeneratorController {
 
         try {
             // Générer toutes les données
-            dataGeneratorService.generateRandomCustomers(count, authentication);
             dataGeneratorService.generateRandomTaux(count);
-            dataGeneratorService.generateRandomBudget(count);
-            dataGeneratorService.generateRandomTicket(count);
-            dataGeneratorService.generateRandomLead(count);
+            dataGeneratorService.generateRandomCustomers(count, authentication);
+            dataGeneratorService.generateRandomTicket(count,authentication);
+            dataGeneratorService.generateRandomLead(count,authentication);
 
             redirectAttributes.addFlashAttribute("successMessage",
                     "Successfully generated " + count + " of each data type.");

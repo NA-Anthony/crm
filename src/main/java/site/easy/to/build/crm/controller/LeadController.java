@@ -207,7 +207,7 @@ public class LeadController {
 
         try {
             // Appeler le service pour générer les clients
-            dataGeneratorService.generateRandomLead(numberOfTaux);
+            dataGeneratorService.generateRandomLead(numberOfTaux,authentication);
 
             // Ajouter un message de succès
             redirectAttributes.addFlashAttribute("successMessage", "Successfully generated " + numberOfTaux + " random customers.");

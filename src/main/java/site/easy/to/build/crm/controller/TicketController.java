@@ -257,7 +257,7 @@ public class TicketController {
 
         try {
             // Appeler le service pour générer les clients
-            dataGeneratorService.generateRandomTicket(numberOfTaux);
+            dataGeneratorService.generateRandomTicket(numberOfTaux,authentication);
 
             // Ajouter un message de succès
             redirectAttributes.addFlashAttribute("successMessage", "Successfully generated " + numberOfTaux + " random customers.");

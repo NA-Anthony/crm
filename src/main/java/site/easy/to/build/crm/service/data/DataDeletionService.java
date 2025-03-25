@@ -10,7 +10,7 @@ import java.util.List;
 public class DataDeletionService {
 
     private final DataDeletionRepository dataDeletionRepository;
-    private static final String[] TABLES_A_EXCLURE = {"users", "roles", "oauth_users", "user_profile", "user_roles"};
+    private static final String[] TABLES_A_EXCLURE = {"users", "roles", "oauth_users", "user_profile", "user_roles","taux_alerte"};
 
     public DataDeletionService(DataDeletionRepository dataDeletionRepository) {
         this.dataDeletionRepository = dataDeletionRepository;
